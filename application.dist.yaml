@@ -1,0 +1,4 @@
+namespace: your.namespace.here
+name: auth-esi-poller
+serviceNames:
+  authSrv: auth-srv
