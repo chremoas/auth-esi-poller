@@ -1,0 +1,10 @@
+language: go
+sudo: false
+services:
+  - mysql
+go:
+  - 1.8
+before_install:
+  - go get github.com/mattn/goveralls
+script:
+  - $HOME/gopath/bin/goveralls -service=travis-ci -ignore=main.go

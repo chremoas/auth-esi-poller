@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/abaeve/services-common/config"
+	"github.com/chremoas/services-common/config"
 )
 
 var version string = "1.0.0"

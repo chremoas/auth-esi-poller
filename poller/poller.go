@@ -2,8 +2,8 @@ package poller
 
 import (
 	"fmt"
-	"github.com/abaeve/auth-esi-poller/esiapi"
-	"github.com/abaeve/auth-srv/proto"
+	"github.com/chremoas/auth-esi-poller/esiapi"
+	"github.com/chremoas/auth-srv/proto"
 	"time"
 )
 

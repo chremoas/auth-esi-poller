@@ -1,9 +1,10 @@
 package poller
 
 import (
-	"github.com/abaeve/auth-esi-poller/mock"
-	authsrv_mocks "github.com/abaeve/auth-srv/mocks"
-	"github.com/abaeve/auth-srv/proto"
+	"github.com/chremoas/auth-esi-poller/mock"
+	authsrv_mocks "github.com/chremoas/auth-srv/mocks"
+	esi_mocks "github.com/chremoas/esi-srv/proto"
+	"github.com/chremoas/auth-srv/proto"
 	"github.com/antihax/goesi/esi"
 	"github.com/golang/mock/gomock"
 	"testing"
@@ -15,20 +16,25 @@ func PollerTestSetup(t *testing.T) (*gomock.Controller,
 	*mocks.MockCorporationApi,
 	*mocks.MockCharacterApi,
 	*authsrv_mocks.MockEntityQueryClient,
-	*authsrv_mocks.MockEntityAdminClient) {
+	*authsrv_mocks.MockEntityAdminClient,
+	*esi_mocks.MockEntityQueryClient) {
 
 	mockCtrl := gomock.NewController(t)
+
 	mockAllianceApi := mocks.NewMockAllianceApi(mockCtrl)
 	mockCorporationApi := mocks.NewMockCorporationApi(mockCtrl)
 	mockCharacterApi := mocks.NewMockCharacterApi(mockCtrl)
+
 	mockEntityQueryClient := authsrv_mocks.NewMockEntityQueryClient(mockCtrl)
 	mockEntityAdminClient := authsrv_mocks.NewMockEntityAdminClient(mockCtrl)
 
-	return mockCtrl, mockAllianceApi, mockCorporationApi, mockCharacterApi, mockEntityQueryClient, mockEntityAdminClient
+	mockEsiEntityQueryClient := esi_mocks.NewMockEntityQueryClient(mockCtrl)
+
+	return mockCtrl, mockAllianceApi, mockCorporationApi, mockCharacterApi, mockEntityQueryClient, mockEntityAdminClient, mockEsiEntityQueryClient
 }
 
 func TestAuthEsiPoller_Poll_AllianceClosed(t *testing.T) {
-	mockCtrl, mockAllianceApi, mockCorporationApi, mockCharacterApi, mockEntityQueryClient, mockEntityAdminClient := PollerTestSetup(t)
+	mockCtrl, mockAllianceApi, mockCorporationApi, mockCharacterApi, mockEntityQueryClient, mockEntityAdminClient, mockEsiEntityQueryClient := PollerTestSetup(t)
 	defer mockCtrl.Finish()
 
 	poller := NewAuthEsiPoller(mockEntityQueryClient, mockEntityAdminClient, mockAllianceApi, mockCorporationApi, mockCharacterApi)
@@ -75,7 +81,7 @@ func TestAuthEsiPoller_Poll_AllianceClosed(t *testing.T) {
 }
 
 func TestAuthEsiPoller_Poll_AllianceNoChange(t *testing.T) {
-	mockCtrl, mockAllianceApi, mockCorporationApi, mockCharacterApi, mockEntityQueryClient, mockEntityAdminClient := PollerTestSetup(t)
+	mockCtrl, mockAllianceApi, mockCorporationApi, mockCharacterApi, mockEntityQueryClient, mockEntityAdminClient, mockEsiEntityQueryClient := PollerTestSetup(t)
 	defer mockCtrl.Finish()
 
 	poller := NewAuthEsiPoller(mockEntityQueryClient, mockEntityAdminClient, mockAllianceApi, mockCorporationApi, mockCharacterApi)
@@ -123,7 +129,7 @@ func TestAuthEsiPoller_Poll_AllianceNoChange(t *testing.T) {
 }
 
 func TestNewAuthEsiPoller_Poll_CorporationMovedAlliance(t *testing.T) {
-	mockCtrl, mockAllianceApi, mockCorporationApi, mockCharacterApi, mockEntityQueryClient, mockEntityAdminClient := PollerTestSetup(t)
+	mockCtrl, mockAllianceApi, mockCorporationApi, mockCharacterApi, mockEntityQueryClient, mockEntityAdminClient, mockEsiEntityQueryClient := PollerTestSetup(t)
 	defer mockCtrl.Finish()
 
 	poller := NewAuthEsiPoller(mockEntityQueryClient, mockEntityAdminClient, mockAllianceApi, mockCorporationApi, mockCharacterApi)
@@ -167,7 +173,7 @@ func TestNewAuthEsiPoller_Poll_CorporationMovedAlliance(t *testing.T) {
 	})
 }
 func TestAuthEsiPoller_Poll_CorporationClosed(t *testing.T) {
-	mockCtrl, mockAllianceApi, mockCorporationApi, mockCharacterApi, mockEntityQueryClient, mockEntityAdminClient := PollerTestSetup(t)
+	mockCtrl, mockAllianceApi, mockCorporationApi, mockCharacterApi, mockEntityQueryClient, mockEntityAdminClient, mockEsiEntityQueryClient := PollerTestSetup(t)
 	defer mockCtrl.Finish()
 
 	poller := NewAuthEsiPoller(mockEntityQueryClient, mockEntityAdminClient, mockAllianceApi, mockCorporationApi, mockCharacterApi)
@@ -214,7 +220,7 @@ func TestAuthEsiPoller_Poll_CorporationClosed(t *testing.T) {
 }
 
 func TestAuthEsiPoller_Poll_CharacterLeftCorp(t *testing.T) {
-	mockCtrl, mockAllianceApi, mockCorporationApi, mockCharacterApi, mockEntityQueryClient, mockEntityAdminClient := PollerTestSetup(t)
+	mockCtrl, mockAllianceApi, mockCorporationApi, mockCharacterApi, mockEntityQueryClient, mockEntityAdminClient, mockEsiEntityQueryClient := PollerTestSetup(t)
 	defer mockCtrl.Finish()
 
 	poller := NewAuthEsiPoller(mockEntityQueryClient, mockEntityAdminClient, mockAllianceApi, mockCorporationApi, mockCharacterApi)
