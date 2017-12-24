@@ -7,7 +7,7 @@ import (
 var version string = "1.0.0"
 
 func main() {
-	service := config.NewService(version, "auth-esi-poller", initialize)
+	service := config.NewService(version, "poller", "auth-esi-poller", initialize)
 
 	service.Run()
 }
