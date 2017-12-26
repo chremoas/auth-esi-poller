@@ -126,6 +126,33 @@ func (aep *authEsiPoller) updateOrDeleteCorporations() error {
 }
 
 func (aep *authEsiPoller) updateOrDeleteCharacters() error {
+	characters, err := aep.entityQueryClient.GetCharacters(context.Background(), &abaeve_auth.EntityQueryRequest{EntityType: abaeve_auth.EntityType_CHARACTER})
+	if err != nil {
+		return err
+	}
+
+	for _, character := range characters.GetList() {
+		response, err := aep.characterClient.GetCharacterById(context.Background(), &chremoas_esi.GetCharacterByIdRequest{ Id: int32(character.Id) })
+		if err == nil {
+			if response.Character == nil {
+				aep.entityAdminClient.CharacterUpdate(context.Background(), &abaeve_auth.CharacterAdminRequest{
+					Character: character,
+					Operation: abaeve_auth.EntityOperation_REMOVE,
+				})
+			} else if characterDiffers(character, response.Character) {
+				aep.entityAdminClient.CharacterUpdate(context.Background(), &abaeve_auth.CharacterAdminRequest{
+					Character: &abaeve_auth.Character{
+						Id: character.Id,
+						Name: response.Character.Name,
+						CorporationId: int64(response.Character.CorporationId),
+					},
+				})
+			}
+		} else {
+			//TODO: Do stuff with this error
+		}
+	}
+
 	return nil
 }
 

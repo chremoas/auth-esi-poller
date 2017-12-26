@@ -376,7 +376,7 @@ func TestAuthEsiPoller_Poll(t *testing.T) {
 			//</editor-fold>
 
 			Convey("Alliance", func() {
-				//<editor-fold desc="Corporation call ommitted from overall common responses">
+				//<editor-fold desc="Corporation and Character call ommitted from overall common responses">
 				When(
 					mockCorporationClient.GetCorporationById(
 						esi_matchers.AnyContextContext(),
@@ -400,6 +400,29 @@ func TestAuthEsiPoller_Poll(t *testing.T) {
 						Url: "Corp 4 url",
 					},
 				},nil)
+
+				When(
+					mockCharacterClient.GetCharacterById(
+						esi_matchers.AnyContextContext(),
+						esi_matchers.EqPtrToProtoGetCharacterByIdRequest(
+							&chremoas_esi.GetCharacterByIdRequest{
+								Id: int32(5),
+							},
+						),
+					),
+				).ThenReturn(&chremoas_esi.GetCharacterByIdResponse{
+					Character: &chremoas_esi.Character{
+						Name: "Character Name 5",
+						CorporationId: int32(4),
+						SecurityStatus: float32(-5),
+						RaceId: int32(5),
+						Gender: "male",
+						BloodlineId: int32(5),
+						Birthday: int64(5),
+						AncestryId: int32(5),
+						Description: "Character 5 description",
+					},
+				}, nil)
 				//</editor-fold>
 
 				Convey("ESI endpoints are called once for each known alliance and alliance 2 is removed", func() {
@@ -606,7 +629,7 @@ func TestAuthEsiPoller_Poll(t *testing.T) {
 			})
 
 			Convey("Corporation", func() {
-				//<editor-fold desc="Alliance call ommited from overall common responses">
+				//<editor-fold desc="Alliance and character call ommited from overall common responses">
 				When(
 					mockAllianceClient.GetAllianceById(
 						esi_matchers.AnyContextContext(),
@@ -622,6 +645,29 @@ func TestAuthEsiPoller_Poll(t *testing.T) {
 						Ticker: "A T 2",
 						DateFounded: int64(2),
 						ExecutorCorp: int32(2),
+					},
+				}, nil)
+
+				When(
+					mockCharacterClient.GetCharacterById(
+						esi_matchers.AnyContextContext(),
+						esi_matchers.EqPtrToProtoGetCharacterByIdRequest(
+							&chremoas_esi.GetCharacterByIdRequest{
+								Id: int32(5),
+							},
+						),
+					),
+				).ThenReturn(&chremoas_esi.GetCharacterByIdResponse{
+					Character: &chremoas_esi.Character{
+						Name: "Character Name 5",
+						CorporationId: int32(4),
+						SecurityStatus: float32(-5),
+						RaceId: int32(5),
+						Gender: "male",
+						BloodlineId: int32(5),
+						Birthday: int64(5),
+						AncestryId: int32(5),
+						Description: "Character 5 description",
 					},
 				}, nil)
 				//</editor-fold>
@@ -863,20 +909,303 @@ func TestAuthEsiPoller_Poll(t *testing.T) {
 			})
 
 			Convey("Character", func() {
-				Convey("ESI endpoints are called for each known character and character 5 is removed", func() {
+				//<editor-fold desc="Alliance and Corporation call ommited from overall common responses">
+				AuthSrvData_Pegomock(mockEntityQueryClient)
+				When(
+					mockAllianceClient.GetAllianceById(
+						esi_matchers.AnyContextContext(),
+						esi_matchers.EqPtrToProtoGetAllianceByIdRequest(
+							&chremoas_esi.GetAllianceByIdRequest{
+								Id: int32(2),
+							},
+						),
+					),
+				).ThenReturn(&chremoas_esi.GetAllianceByIdResponse{
+					Alliance: &chremoas_esi.Alliance{
+						Name: "Alliance Name 2",
+						Ticker: "A T 2",
+						DateFounded: int64(2),
+						ExecutorCorp: int32(2),
+					},
+				}, nil)
 
+				When(
+					mockCorporationClient.GetCorporationById(
+						esi_matchers.AnyContextContext(),
+						esi_matchers.EqPtrToProtoGetCorporationByIdRequest(
+							&chremoas_esi.GetCorporationByIdRequest{
+								Id: int32(4),
+							},
+						),
+					),
+				).ThenReturn(&chremoas_esi.GetCorporationByIdResponse{
+					Corporation: &chremoas_esi.Corporation{
+						Name: "Corporation Name 4",
+						Ticker: "C T 4",
+						CeoId: int32(4),
+						CreationDate: int64(4),
+						CreatorId: int32(4),
+						Description: "Description for corp 4",
+						FactionId: int32(4),
+						MemberCount: int32(4),
+						TaxRate: float32(4),
+						Url: "Corp 4 url",
+					},
+				},nil)
+				//</editor-fold>
+
+				Convey("ESI endpoints are called for each known character and character 5 is removed", func() {
+					//<editor-fold desc="Test specific givens">
+					When(
+						mockCharacterClient.GetCharacterById(
+							esi_matchers.AnyContextContext(),
+							esi_matchers.EqPtrToProtoGetCharacterByIdRequest(
+								&chremoas_esi.GetCharacterByIdRequest{
+									Id: int32(5),
+								},
+							),
+						),
+					).ThenReturn(&chremoas_esi.GetCharacterByIdResponse{}, nil)
+					//</editor-fold>
+
+					err := poller.Poll()
+					So(err, ShouldBeNil)
+
+					//<editor-fold desc="Then we expect 5 calls to the esi endpoint and 1 call to the auth-srv endpoint">
+					mockCharacterClient.VerifyWasCalledOnce().GetCharacterById(
+						esi_matchers.AnyContextContext(),
+						esi_matchers.EqPtrToProtoGetCharacterByIdRequest(
+							&chremoas_esi.GetCharacterByIdRequest{
+								Id: int32(1),
+							},
+						),
+					)
+					mockCharacterClient.VerifyWasCalledOnce().GetCharacterById(
+						esi_matchers.AnyContextContext(),
+						esi_matchers.EqPtrToProtoGetCharacterByIdRequest(
+							&chremoas_esi.GetCharacterByIdRequest{
+								Id: int32(2),
+							},
+						),
+					)
+					mockCharacterClient.VerifyWasCalledOnce().GetCharacterById(
+						esi_matchers.AnyContextContext(),
+						esi_matchers.EqPtrToProtoGetCharacterByIdRequest(
+							&chremoas_esi.GetCharacterByIdRequest{
+								Id: int32(3),
+							},
+						),
+					)
+					mockCharacterClient.VerifyWasCalledOnce().GetCharacterById(
+						esi_matchers.AnyContextContext(),
+						esi_matchers.EqPtrToProtoGetCharacterByIdRequest(
+							&chremoas_esi.GetCharacterByIdRequest{
+								Id: int32(4),
+							},
+						),
+					)
+					mockCharacterClient.VerifyWasCalledOnce().GetCharacterById(
+						esi_matchers.AnyContextContext(),
+						esi_matchers.EqPtrToProtoGetCharacterByIdRequest(
+							&chremoas_esi.GetCharacterByIdRequest{
+								Id: int32(5),
+							},
+						),
+					)
+
+					mockEntityAdminClient.VerifyWasCalledOnce().CharacterUpdate(
+						authsrv_matchers.AnyContextContext(),
+						authsrv_matchers.EqPtrToProtoCharacterAdminRequest(
+							&abaeve_auth.CharacterAdminRequest{
+								Character: &abaeve_auth.Character{
+									Id: int64(5),
+									Name: "Character Name 5",
+									CorporationId: int64(4),
+								},
+								Operation: abaeve_auth.EntityOperation_REMOVE,
+							},
+						),
+					)
+					//</editor-fold>
 				})
 
 				Convey("ESI endpoints are called for each known character and character 5 is renamed", func() {
+					//<editor-fold desc="Test specific givens">
+					When(
+						mockCharacterClient.GetCharacterById(
+							esi_matchers.AnyContextContext(),
+							esi_matchers.EqPtrToProtoGetCharacterByIdRequest(
+								&chremoas_esi.GetCharacterByIdRequest{
+									Id: int32(5),
+								},
+							),
+						),
+					).ThenReturn(&chremoas_esi.GetCharacterByIdResponse{
+						Character: &chremoas_esi.Character{
+							Name: "Character 5",
+							CorporationId: int32(4),
+							SecurityStatus: float32(-5),
+							RaceId: int32(5),
+							Gender: "male",
+							BloodlineId: int32(5),
+							Birthday: int64(5),
+							AncestryId: int32(5),
+							Description: "Character 5 description",
+						},
+					}, nil)
+					//</editor-fold>
 
+					err := poller.Poll()
+					So(err, ShouldBeNil)
+
+					//<editor-fold desc="Then we expect 5 calls to the esi endpoint and 1 call to the auth-srv endpoint">
+					mockCharacterClient.VerifyWasCalledOnce().GetCharacterById(
+						esi_matchers.AnyContextContext(),
+						esi_matchers.EqPtrToProtoGetCharacterByIdRequest(
+							&chremoas_esi.GetCharacterByIdRequest{
+								Id: int32(1),
+							},
+						),
+					)
+					mockCharacterClient.VerifyWasCalledOnce().GetCharacterById(
+						esi_matchers.AnyContextContext(),
+						esi_matchers.EqPtrToProtoGetCharacterByIdRequest(
+							&chremoas_esi.GetCharacterByIdRequest{
+								Id: int32(2),
+							},
+						),
+					)
+					mockCharacterClient.VerifyWasCalledOnce().GetCharacterById(
+						esi_matchers.AnyContextContext(),
+						esi_matchers.EqPtrToProtoGetCharacterByIdRequest(
+							&chremoas_esi.GetCharacterByIdRequest{
+								Id: int32(3),
+							},
+						),
+					)
+					mockCharacterClient.VerifyWasCalledOnce().GetCharacterById(
+						esi_matchers.AnyContextContext(),
+						esi_matchers.EqPtrToProtoGetCharacterByIdRequest(
+							&chremoas_esi.GetCharacterByIdRequest{
+								Id: int32(4),
+							},
+						),
+					)
+					mockCharacterClient.VerifyWasCalledOnce().GetCharacterById(
+						esi_matchers.AnyContextContext(),
+						esi_matchers.EqPtrToProtoGetCharacterByIdRequest(
+							&chremoas_esi.GetCharacterByIdRequest{
+								Id: int32(5),
+							},
+						),
+					)
+
+					mockEntityAdminClient.VerifyWasCalledOnce().CharacterUpdate(
+						authsrv_matchers.AnyContextContext(),
+						authsrv_matchers.EqPtrToProtoCharacterAdminRequest(
+							&abaeve_auth.CharacterAdminRequest{
+								Character: &abaeve_auth.Character{
+									Id: int64(5),
+									Name: "Character 5",
+									CorporationId: int64(4),
+								},
+								Operation: abaeve_auth.EntityOperation_ADD_OR_UPDATE,
+							},
+						),
+					)
+					//</editor-fold>
 				})
 
 				Convey("ESI endpoints are called for each known character and character 5 moves to corporation 1", func() {
+					//<editor-fold desc="Test specific givens">
+					When(
+						mockCharacterClient.GetCharacterById(
+							esi_matchers.AnyContextContext(),
+							esi_matchers.EqPtrToProtoGetCharacterByIdRequest(
+								&chremoas_esi.GetCharacterByIdRequest{
+									Id: int32(5),
+								},
+							),
+						),
+					).ThenReturn(&chremoas_esi.GetCharacterByIdResponse{
+						Character: &chremoas_esi.Character{
+							Name: "Character Name 5",
+							CorporationId: int32(1),
+							SecurityStatus: float32(-5),
+							RaceId: int32(5),
+							Gender: "male",
+							BloodlineId: int32(5),
+							Birthday: int64(5),
+							AncestryId: int32(5),
+							Description: "Character 5 description",
+						},
+					}, nil)
+					//</editor-fold>
 
+					err := poller.Poll()
+					So(err, ShouldBeNil)
+
+					//<editor-fold desc="Then we expect 5 calls to the esi endpoint and 1 call to the auth-srv endpoint">
+					mockCharacterClient.VerifyWasCalledOnce().GetCharacterById(
+						esi_matchers.AnyContextContext(),
+						esi_matchers.EqPtrToProtoGetCharacterByIdRequest(
+							&chremoas_esi.GetCharacterByIdRequest{
+								Id: int32(1),
+							},
+						),
+					)
+					mockCharacterClient.VerifyWasCalledOnce().GetCharacterById(
+						esi_matchers.AnyContextContext(),
+						esi_matchers.EqPtrToProtoGetCharacterByIdRequest(
+							&chremoas_esi.GetCharacterByIdRequest{
+								Id: int32(2),
+							},
+						),
+					)
+					mockCharacterClient.VerifyWasCalledOnce().GetCharacterById(
+						esi_matchers.AnyContextContext(),
+						esi_matchers.EqPtrToProtoGetCharacterByIdRequest(
+							&chremoas_esi.GetCharacterByIdRequest{
+								Id: int32(3),
+							},
+						),
+					)
+					mockCharacterClient.VerifyWasCalledOnce().GetCharacterById(
+						esi_matchers.AnyContextContext(),
+						esi_matchers.EqPtrToProtoGetCharacterByIdRequest(
+							&chremoas_esi.GetCharacterByIdRequest{
+								Id: int32(4),
+							},
+						),
+					)
+					mockCharacterClient.VerifyWasCalledOnce().GetCharacterById(
+						esi_matchers.AnyContextContext(),
+						esi_matchers.EqPtrToProtoGetCharacterByIdRequest(
+							&chremoas_esi.GetCharacterByIdRequest{
+								Id: int32(5),
+							},
+						),
+					)
+
+					mockEntityAdminClient.VerifyWasCalledOnce().CharacterUpdate(
+						authsrv_matchers.AnyContextContext(),
+						authsrv_matchers.EqPtrToProtoCharacterAdminRequest(
+							&abaeve_auth.CharacterAdminRequest{
+								Character: &abaeve_auth.Character{
+									Id: int64(5),
+									Name: "Character Name 5",
+									CorporationId: int64(1),
+								},
+								Operation: abaeve_auth.EntityOperation_ADD_OR_UPDATE,
+							},
+						),
+					)
+					//</editor-fold>
 				})
 			})
 		})
 
+		//TODO: Complete these
 		Convey("Error paths", func() {
 			Convey("ESI", func() {
 				When(
@@ -1021,6 +1350,112 @@ func TestAuthEsiPoller_Poll(t *testing.T) {
 						Id: int64(3),
 						Name: "Corporation Name 3",
 						Ticker: "C T 3",
+					},
+					Operation: abaeve_auth.EntityOperation_REMOVE,
+				},
+			),
+		)
+
+		mockEntityAdminClient.VerifyWasCalled(AtMost(0)).CharacterUpdate(
+			authsrv_matchers.AnyContextContext(),
+			authsrv_matchers.EqPtrToProtoCharacterAdminRequest(
+				&abaeve_auth.CharacterAdminRequest{
+					Character: &abaeve_auth.Character{
+						Id: int64(1),
+						Name: "Character 1",
+						CorporationId: int64(1),
+					},
+					Operation: abaeve_auth.EntityOperation_ADD_OR_UPDATE,
+				},
+			),
+		)
+		mockEntityAdminClient.VerifyWasCalled(AtMost(0)).CharacterUpdate(
+			authsrv_matchers.AnyContextContext(),
+			authsrv_matchers.EqPtrToProtoCharacterAdminRequest(
+				&abaeve_auth.CharacterAdminRequest{
+					Character: &abaeve_auth.Character{
+						Id: int64(2),
+						Name: "Character 2",
+						CorporationId: int64(2),
+					},
+					Operation: abaeve_auth.EntityOperation_ADD_OR_UPDATE,
+				},
+			),
+		)
+		mockEntityAdminClient.VerifyWasCalled(AtMost(0)).CharacterUpdate(
+			authsrv_matchers.AnyContextContext(),
+			authsrv_matchers.EqPtrToProtoCharacterAdminRequest(
+				&abaeve_auth.CharacterAdminRequest{
+					Character: &abaeve_auth.Character{
+						Id: int64(3),
+						Name: "Character 3",
+						CorporationId: int64(2),
+					},
+					Operation: abaeve_auth.EntityOperation_ADD_OR_UPDATE,
+				},
+			),
+		)
+		mockEntityAdminClient.VerifyWasCalled(AtMost(0)).CharacterUpdate(
+			authsrv_matchers.AnyContextContext(),
+			authsrv_matchers.EqPtrToProtoCharacterAdminRequest(
+				&abaeve_auth.CharacterAdminRequest{
+					Character: &abaeve_auth.Character{
+						Id: int64(4),
+						Name: "Character 4",
+						CorporationId: int64(3),
+					},
+					Operation: abaeve_auth.EntityOperation_ADD_OR_UPDATE,
+				},
+			),
+		)
+
+		mockEntityAdminClient.VerifyWasCalled(AtMost(0)).CharacterUpdate(
+			authsrv_matchers.AnyContextContext(),
+			authsrv_matchers.EqPtrToProtoCharacterAdminRequest(
+				&abaeve_auth.CharacterAdminRequest{
+					Character: &abaeve_auth.Character{
+						Id: int64(1),
+						Name: "Character Name 1",
+						CorporationId: int64(1),
+					},
+					Operation: abaeve_auth.EntityOperation_REMOVE,
+				},
+			),
+		)
+		mockEntityAdminClient.VerifyWasCalled(AtMost(0)).CharacterUpdate(
+			authsrv_matchers.AnyContextContext(),
+			authsrv_matchers.EqPtrToProtoCharacterAdminRequest(
+				&abaeve_auth.CharacterAdminRequest{
+					Character: &abaeve_auth.Character{
+						Id: int64(2),
+						Name: "Character Name 2",
+						CorporationId: int64(2),
+					},
+					Operation: abaeve_auth.EntityOperation_REMOVE,
+				},
+			),
+		)
+		mockEntityAdminClient.VerifyWasCalled(AtMost(0)).CharacterUpdate(
+			authsrv_matchers.AnyContextContext(),
+			authsrv_matchers.EqPtrToProtoCharacterAdminRequest(
+				&abaeve_auth.CharacterAdminRequest{
+					Character: &abaeve_auth.Character{
+						Id: int64(3),
+						Name: "Character Name 3",
+						CorporationId: int64(2),
+					},
+					Operation: abaeve_auth.EntityOperation_REMOVE,
+				},
+			),
+		)
+		mockEntityAdminClient.VerifyWasCalled(AtMost(0)).CharacterUpdate(
+			authsrv_matchers.AnyContextContext(),
+			authsrv_matchers.EqPtrToProtoCharacterAdminRequest(
+				&abaeve_auth.CharacterAdminRequest{
+					Character: &abaeve_auth.Character{
+						Id: int64(4),
+						Name: "Character Name 1",
+						CorporationId: int64(3),
 					},
 					Operation: abaeve_auth.EntityOperation_REMOVE,
 				},
