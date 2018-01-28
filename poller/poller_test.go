@@ -906,6 +906,90 @@ func TestAuthEsiPoller_Poll(t *testing.T) {
 					)
 					//</editor-fold>
 				})
+
+				Convey("Unknown alliance is created when a corporation is seen as joining it", func() {
+					//<editor-fold desc="Test specific givens">
+					AuthSrvData_Pegomock(mockEntityQueryClient)
+					When(
+						mockAllianceClient.GetAllianceById(
+							esi_matchers.AnyContextContext(),
+							esi_matchers.EqPtrToProtoGetAllianceByIdRequest(
+								&chremoas_esi.GetAllianceByIdRequest{
+									Id: int32(3),
+								},
+							),
+						),
+					).ThenReturn(
+						&chremoas_esi.GetAllianceByIdResponse{
+							Alliance: &chremoas_esi.Alliance{
+								Name: "Alliance Name 3",
+								Ticker: "A T 3",
+								DateFounded: int64(3),
+								ExecutorCorp: int32(6),
+							},
+						},nil,
+					)
+
+					When(
+						mockCorporationClient.GetCorporationById(
+							esi_matchers.AnyContextContext(),
+							esi_matchers.EqPtrToProtoGetCorporationByIdRequest(
+								&chremoas_esi.GetCorporationByIdRequest{
+									Id: int32(4),
+								},
+							),
+						),
+					).ThenReturn(&chremoas_esi.GetCorporationByIdResponse{
+						Corporation: &chremoas_esi.Corporation{
+							Name: "Corporation Name 4",
+							Ticker: "C T 4",
+							AllianceId: int32(3),
+							CeoId: int32(4),
+							CreationDate: int64(4),
+							CreatorId: int32(4),
+							Description: "Description for corp 4",
+							FactionId: int32(4),
+							MemberCount: int32(4),
+							TaxRate: float32(4),
+							Url: "Corp 4 url",
+						},
+					},nil)
+					//</editor-fold>
+
+					err := poller.Poll()
+					So(err, ShouldBeNil)
+
+					//<editor-fold desc="Then we expect 5 calls to the esi endpoint and 1 call to the auth-srv endpoint">
+					mockAllianceClient.VerifyWasCalledOnce().GetAllianceById(esi_matchers.AnyContextContext(), esi_matchers.EqPtrToProtoGetAllianceByIdRequest(
+						&chremoas_esi.GetAllianceByIdRequest{
+							Id: int32(3),
+						},
+					))
+
+					mockEntityAdminClient.VerifyWasCalledOnce().AllianceUpdate(authsrv_matchers.AnyContextContext(), authsrv_matchers.EqPtrToProtoAllianceAdminRequest(
+						&abaeve_auth.AllianceAdminRequest{
+							Alliance: &abaeve_auth.Alliance{
+								Id: int64(3),
+								Name: "Alliance Name 3",
+								Ticker: "A T 3",
+							},
+							Operation: abaeve_auth.EntityOperation_ADD_OR_UPDATE,
+						},
+					))
+
+					mockEntityAdminClient.VerifyWasCalledOnce().CorporationUpdate(authsrv_matchers.AnyContextContext(), authsrv_matchers.EqPtrToProtoCorporationAdminRequest(
+						&abaeve_auth.CorporationAdminRequest{
+							Corporation: &abaeve_auth.Corporation{
+								Id: int64(4),
+								Name: "Corporation Name 4",
+								Ticker: "C T 4",
+								AllianceId: int64(3),
+							},
+							Operation: abaeve_auth.EntityOperation_ADD_OR_UPDATE,
+						},
+					))
+					//</editor-fold>
+				})
 			})
 
 			Convey("Character", func() {
@@ -1201,6 +1285,94 @@ func TestAuthEsiPoller_Poll(t *testing.T) {
 						),
 					)
 					//</editor-fold>
+				})
+
+				Convey("Unknown corporation is created when a character is seen as joining it", func() {
+					//<editor-fold desc="Test specific givens>
+					AuthSrvData_Pegomock(mockEntityQueryClient)
+
+					When(
+						mockCorporationClient.GetCorporationById(
+							esi_matchers.AnyContextContext(),
+							esi_matchers.EqPtrToProtoGetCorporationByIdRequest(
+								&chremoas_esi.GetCorporationByIdRequest{
+									Id: int32(5),
+								},
+							),
+						),
+					).ThenReturn(&chremoas_esi.GetCorporationByIdResponse{
+						Corporation: &chremoas_esi.Corporation{
+							Name: "Corporation Name 5",
+							Ticker: "C T 5",
+							AllianceId: int32(2),
+							CeoId: int32(5),
+							CreationDate: int64(5),
+							CreatorId: int32(5),
+							Description: "Description for corp 5",
+							FactionId: int32(5),
+							MemberCount: int32(5),
+							TaxRate: float32(5),
+							Url: "Corp 5 url",
+						},
+					},nil)
+
+					When(
+						mockCharacterClient.GetCharacterById(
+							esi_matchers.AnyContextContext(),
+							esi_matchers.EqPtrToProtoGetCharacterByIdRequest(
+								&chremoas_esi.GetCharacterByIdRequest{
+									Id: int32(5),
+								},
+							),
+						),
+					).ThenReturn(&chremoas_esi.GetCharacterByIdResponse{
+						Character: &chremoas_esi.Character{
+							Name: "Character Name 5",
+							CorporationId: int32(5),
+							SecurityStatus: float32(-5),
+							RaceId: int32(5),
+							Gender: "male",
+							BloodlineId: int32(5),
+							Birthday: int64(5),
+							AncestryId: int32(5),
+							Description: "Character 5 description",
+						},
+					}, nil)
+					//</editor-fold>
+
+					err := poller.Poll()
+					So(err, ShouldBeNil)
+
+					mockCorporationClient.VerifyWasCalledOnce().GetCorporationById(esi_matchers.AnyContextContext(), esi_matchers.EqPtrToProtoGetCorporationByIdRequest(
+						&chremoas_esi.GetCorporationByIdRequest{
+							Id: int32(5),
+						},
+					))
+					mockEntityAdminClient.VerifyWasCalledOnce().CorporationUpdate(authsrv_matchers.AnyContextContext(), authsrv_matchers.EqPtrToProtoCorporationAdminRequest(
+						&abaeve_auth.CorporationAdminRequest{
+							Corporation: &abaeve_auth.Corporation{
+								Id: 5,
+								Name: "Corporation Name 5",
+								Ticker: "C T 5",
+								AllianceId: 2,
+							},
+							Operation: abaeve_auth.EntityOperation_ADD_OR_UPDATE,
+						},
+					))
+					mockEntityAdminClient.VerifyWasCalledOnce().CharacterUpdate(authsrv_matchers.AnyContextContext(), authsrv_matchers.EqPtrToProtoCharacterAdminRequest(
+						&abaeve_auth.CharacterAdminRequest{
+							Character: &abaeve_auth.Character{
+								Id: 5,
+								Name: "Character Name 5",
+								CorporationId: 5,
+							},
+							Operation: abaeve_auth.EntityOperation_ADD_OR_UPDATE,
+						},
+					))
+				})
+
+				Convey("Unknown alliance of unknown corporation is created when a character is seen as joining it", func() {
+
 				})
 			})
 		})
@@ -1643,7 +1815,7 @@ func pruneStack(fullStackTrace string, skip int) string {
 		stack = stack[skip+4:]
 	}
 	prunedStack := []string{}
-	re := regexp.MustCompile(`\/auth-esi-poller\/`)
+	re := regexp.MustCompile(`/auth-esi-poller/`)
 	for i := 0; i < len(stack); i += 2 {
 		if re.Match([]byte(stack[i])) {
 			prunedStack = append(prunedStack, stack[i+1])
