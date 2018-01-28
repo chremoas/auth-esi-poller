@@ -6,6 +6,7 @@ import (
 	"github.com/chremoas/esi-srv/proto"
 	"time"
 	"golang.org/x/net/context"
+	"errors"
 )
 
 type AuthEsiPoller interface {
@@ -24,6 +25,12 @@ type authEsiPoller struct {
 
 	tickTime time.Duration
 	ticker   *time.Ticker
+
+	authAllianceMap    map[int32]*abaeve_auth.Alliance
+	authCorporationMap map[int32]*abaeve_auth.Corporation
+
+	esiAllianceMap     map[int64]*chremoas_esi.Alliance
+	esiCorporationMap  map[int64]*chremoas_esi.Corporation
 }
 
 func (aep *authEsiPoller) Start() {
@@ -40,6 +47,8 @@ func (aep *authEsiPoller) Start() {
 	}()
 }
 
+// Poll currently starts at alliances and works it's way down to characters.  It then walks back up at the corporation
+// level and character level if alliance/corporation membership has changed from the last poll.
 func (aep *authEsiPoller) Poll() error {
 	allErrors := ""
 
@@ -58,6 +67,12 @@ func (aep *authEsiPoller) Poll() error {
 		allErrors += err.Error() + "\n"
 	}
 
+	aep.clearMaps()
+
+	if len(allErrors) > 0 {
+		return errors.New(allErrors)
+	}
+
 	return nil
 }
 
@@ -66,6 +81,8 @@ func (aep *authEsiPoller) updateOrDeleteAlliances() error {
 	if err != nil {
 		return err
 	}
+
+	aep.buildAllianceMap(alliances.GetList())
 
 	for _, alliance := range alliances.GetList() {
 		response, err := aep.allianceClient.GetAllianceById(context.Background(), &chremoas_esi.GetAllianceByIdRequest{ Id: int32(alliance.Id) })
@@ -76,15 +93,19 @@ func (aep *authEsiPoller) updateOrDeleteAlliances() error {
 					Operation: abaeve_auth.EntityOperation_REMOVE,
 				})
 			} else if allianceDiffers(alliance, response.Alliance) {
+				aep.authAllianceMap[int32(alliance.Id)] = &abaeve_auth.Alliance{
+					Id: alliance.Id,
+					Name: response.Alliance.Name,
+					Ticker: response.Alliance.Ticker,
+				}
+
 				aep.entityAdminClient.AllianceUpdate(context.Background(), &abaeve_auth.AllianceAdminRequest{
-					Alliance: &abaeve_auth.Alliance{
-						Id: alliance.Id,
-						Name: response.Alliance.Name,
-						Ticker: response.Alliance.Ticker,
-					},
+					Alliance: aep.authAllianceMap[int32(alliance.Id)],
 					Operation: abaeve_auth.EntityOperation_ADD_OR_UPDATE,
 				})
 			}
+
+			aep.esiAllianceMap[alliance.Id] = response.Alliance
 		} else {
 			//TODO: Do stuff with this error
 		}
@@ -99,6 +120,8 @@ func (aep *authEsiPoller) updateOrDeleteCorporations() error {
 		return err
 	}
 
+	aep.buildCorporationMap(corporations.GetList())
+
 	for _, corporation := range corporations.GetList() {
 		response, err := aep.corporationClient.GetCorporationById(context.Background(), &chremoas_esi.GetCorporationByIdRequest{ Id: int32(corporation.Id) })
 		if err == nil {
@@ -108,6 +131,8 @@ func (aep *authEsiPoller) updateOrDeleteCorporations() error {
 					Operation: abaeve_auth.EntityOperation_REMOVE,
 				})
 			} else if corporationDiffers(corporation, response.Corporation) {
+				aep.checkAndUpdateCorpsAllianceIfNecessary(corporation, response.Corporation)
+
 				aep.entityAdminClient.CorporationUpdate(context.Background(), &abaeve_auth.CorporationAdminRequest{
 					Corporation: &abaeve_auth.Corporation{
 						Id: corporation.Id,
@@ -115,6 +140,7 @@ func (aep *authEsiPoller) updateOrDeleteCorporations() error {
 						Ticker: response.Corporation.Ticker,
 						AllianceId: int64(response.Corporation.AllianceId),
 					},
+					Operation: abaeve_auth.EntityOperation_ADD_OR_UPDATE,
 				})
 			}
 		} else {
@@ -131,6 +157,8 @@ func (aep *authEsiPoller) updateOrDeleteCharacters() error {
 		return err
 	}
 
+	allNonFatalErrors := ""
+
 	for _, character := range characters.GetList() {
 		response, err := aep.characterClient.GetCharacterById(context.Background(), &chremoas_esi.GetCharacterByIdRequest{ Id: int32(character.Id) })
 		if err == nil {
@@ -140,6 +168,32 @@ func (aep *authEsiPoller) updateOrDeleteCharacters() error {
 					Operation: abaeve_auth.EntityOperation_REMOVE,
 				})
 			} else if characterDiffers(character, response.Character) {
+				if character.CorporationId != int64(response.Character.CorporationId) && aep.esiCorporationMap[character.CorporationId] == nil {
+					esiResponse, err := aep.corporationClient.GetCorporationById(context.Background(), &chremoas_esi.GetCorporationByIdRequest{
+						Id: response.Character.CorporationId,
+					})
+					if err != nil {
+						allNonFatalErrors += err.Error() + "\n"
+					} else {
+						aep.checkAndUpdateCorpsAllianceIfNecessary(aep.authCorporationMap[int32(character.CorporationId)], esiResponse.Corporation)
+
+						newAuthCorporation := &abaeve_auth.Corporation{
+							Id: int64(response.Character.CorporationId),
+							Name: esiResponse.Corporation.Name,
+							Ticker: esiResponse.Corporation.Ticker,
+							AllianceId: int64(esiResponse.Corporation.AllianceId),
+						}
+
+						aep.entityAdminClient.CorporationUpdate(context.Background(), &abaeve_auth.CorporationAdminRequest{
+							Corporation: newAuthCorporation,
+							Operation: abaeve_auth.EntityOperation_ADD_OR_UPDATE,
+						})
+
+						aep.esiCorporationMap[character.CorporationId] = esiResponse.Corporation
+						aep.authCorporationMap[int32(character.CorporationId)] = newAuthCorporation
+					}
+				}
+
 				aep.entityAdminClient.CharacterUpdate(context.Background(), &abaeve_auth.CharacterAdminRequest{
 					Character: &abaeve_auth.Character{
 						Id: character.Id,
@@ -149,11 +203,75 @@ func (aep *authEsiPoller) updateOrDeleteCharacters() error {
 				})
 			}
 		} else {
-			//TODO: Do stuff with this error
+			allNonFatalErrors += err.Error() + "\n"
 		}
 	}
 
+	if len(allNonFatalErrors) > 0 {
+		return errors.New(allNonFatalErrors)
+	}
+
 	return nil
+}
+
+func (aep *authEsiPoller) checkAndUpdateCorpsAllianceIfNecessary(authCorporation *abaeve_auth.Corporation, esiCorporation *chremoas_esi.Corporation) error {
+	allErrors := ""
+
+	if authCorporation.AllianceId != int64(esiCorporation.AllianceId) && aep.esiAllianceMap[int64(esiCorporation.AllianceId)] == nil {
+		newAllianceResponse, err := aep.allianceClient.GetAllianceById(context.Background(), &chremoas_esi.GetAllianceByIdRequest{
+			Id: esiCorporation.AllianceId,
+		})
+		if err != nil {
+			allErrors += err.Error() + "\n"
+		}
+
+		aep.authAllianceMap[esiCorporation.AllianceId] = &abaeve_auth.Alliance{
+			Id: int64(esiCorporation.AllianceId),
+			Name: newAllianceResponse.Alliance.Name,
+			Ticker: newAllianceResponse.Alliance.Ticker,
+		}
+
+		aep.esiAllianceMap[int64(esiCorporation.AllianceId)] = newAllianceResponse.Alliance
+
+		_, err = aep.entityAdminClient.AllianceUpdate(context.Background(), &abaeve_auth.AllianceAdminRequest{
+			Alliance: aep.authAllianceMap[esiCorporation.AllianceId],
+			Operation: abaeve_auth.EntityOperation_ADD_OR_UPDATE,
+		})
+		if err != nil {
+			allErrors += err.Error() + "\n"
+		}
+	}
+
+	if len(allErrors) > 0 {
+		return errors.New(allErrors)
+	}
+
+	return nil
+}
+
+func (aep *authEsiPoller) buildAllianceMap(alliances []*abaeve_auth.Alliance) {
+	if aep.authAllianceMap == nil {
+		aep.authAllianceMap = make(map[int32]*abaeve_auth.Alliance)
+	}
+
+	for _, alliance := range alliances {
+		aep.authAllianceMap[int32(alliance.Id)] = alliance
+	}
+}
+
+func (aep *authEsiPoller) buildCorporationMap(corporations []*abaeve_auth.Corporation) {
+	if aep.authCorporationMap == nil {
+		aep.authCorporationMap = make(map[int32]*abaeve_auth.Corporation)
+	}
+
+	for _, corporation := range corporations {
+		aep.authCorporationMap[int32(corporation.Id)] = corporation
+	}
+}
+
+func (aep *authEsiPoller) clearMaps() {
+	aep.authAllianceMap = make(map[int32]*abaeve_auth.Alliance)
+	aep.authCorporationMap = make(map[int32]*abaeve_auth.Corporation)
 }
 
 func allianceDiffers(authAlliance *abaeve_auth.Alliance, esiAlliance *chremoas_esi.Alliance) bool {
@@ -194,5 +312,11 @@ func NewAuthEsiPoller(eqc abaeve_auth.EntityQueryClient,
 		corporationClient: corporationClient,
 		characterClient:   characterClient,
 		tickTime:          time.Minute * 5,
+
+		authAllianceMap:    make(map[int32]*abaeve_auth.Alliance),
+		authCorporationMap: make(map[int32]*abaeve_auth.Corporation),
+
+		esiAllianceMap: make(map[int64]*chremoas_esi.Alliance),
+		esiCorporationMap: make(map[int64]*chremoas_esi.Corporation),
 	}
 }
