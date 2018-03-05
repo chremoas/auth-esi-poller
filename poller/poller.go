@@ -215,6 +215,11 @@ func (aep *authEsiPoller) updateOrDeleteCharacters() error {
 }
 
 func (aep *authEsiPoller) checkAndUpdateCorpsAllianceIfNecessary(authCorporation *abaeve_auth.Corporation, esiCorporation *chremoas_esi.Corporation) error {
+	if esiCorporation.AllianceId == 0 {
+		return nil
+	}
+
+	fmt.Printf("Updating corporations alliance for %s with allianceId %d\n", esiCorporation.Name, esiCorporation.AllianceId)
 	allErrors := ""
 
 	if authCorporation.AllianceId != int64(esiCorporation.AllianceId) && aep.esiAllianceMap[int64(esiCorporation.AllianceId)] == nil {
