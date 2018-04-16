@@ -1,12 +1,13 @@
 package poller
 
 import (
+	"errors"
 	"fmt"
 	"github.com/chremoas/auth-srv/proto"
 	"github.com/chremoas/esi-srv/proto"
-	"time"
+	"go.uber.org/zap"
 	"golang.org/x/net/context"
-	"errors"
+	"time"
 )
 
 type AuthEsiPoller interface {
@@ -29,19 +30,28 @@ type authEsiPoller struct {
 	authAllianceMap    map[int32]*abaeve_auth.Alliance
 	authCorporationMap map[int32]*abaeve_auth.Corporation
 
-	esiAllianceMap     map[int64]*chremoas_esi.Alliance
-	esiCorporationMap  map[int64]*chremoas_esi.Corporation
+	esiAllianceMap    map[int64]*chremoas_esi.Alliance
+	esiCorporationMap map[int64]*chremoas_esi.Corporation
+
+	logger *zap.Logger
 }
 
 func (aep *authEsiPoller) Start() {
 	aep.ticker = time.NewTicker(aep.tickTime)
+	sugar := aep.logger.Sugar()
 
+	sugar.Info("Starting polling loop")
 	go func() {
+		err := aep.Poll()
+		if err != nil {
+			//TODO: Replace with logger object
+			sugar.Errorf("Received an error while polling: %s", err)
+		}
 		for range aep.ticker.C {
 			err := aep.Poll()
 			if err != nil {
 				//TODO: Replace with logger object
-				fmt.Printf("Received an error while polling: %s\n", err)
+				sugar.Errorf("Received an error while polling: %s", err)
 			}
 		}
 	}()
@@ -50,23 +60,29 @@ func (aep *authEsiPoller) Start() {
 // Poll currently starts at alliances and works it's way down to characters.  It then walks back up at the corporation
 // level and character level if alliance/corporation membership has changed from the last poll.
 func (aep *authEsiPoller) Poll() error {
+	sugar := aep.logger.Sugar()
+
 	allErrors := ""
 
+	sugar.Info("Calling updateOrDeleteAlliances()")
 	err := aep.updateOrDeleteAlliances()
 	if err != nil {
 		allErrors += err.Error() + "\n"
 	}
 
+	sugar.Info("Calling updateOrDeleteCorporations()")
 	err = aep.updateOrDeleteCorporations()
 	if err != nil {
 		allErrors += err.Error() + "\n"
 	}
 
+	sugar.Info("Calling updateOrDeleteCharacters()")
 	err = aep.updateOrDeleteCharacters()
 	if err != nil {
 		allErrors += err.Error() + "\n"
 	}
 
+	sugar.Info("Calling clearMaps()")
 	aep.clearMaps()
 
 	if len(allErrors) > 0 {
@@ -85,22 +101,22 @@ func (aep *authEsiPoller) updateOrDeleteAlliances() error {
 	aep.buildAllianceMap(alliances.GetList())
 
 	for _, alliance := range alliances.GetList() {
-		response, err := aep.allianceClient.GetAllianceById(context.Background(), &chremoas_esi.GetAllianceByIdRequest{ Id: int32(alliance.Id) })
+		response, err := aep.allianceClient.GetAllianceById(context.Background(), &chremoas_esi.GetAllianceByIdRequest{Id: int32(alliance.Id)})
 		if err == nil {
 			if response.Alliance == nil {
 				aep.entityAdminClient.AllianceUpdate(context.Background(), &abaeve_auth.AllianceAdminRequest{
-					Alliance: alliance,
+					Alliance:  alliance,
 					Operation: abaeve_auth.EntityOperation_REMOVE,
 				})
 			} else if allianceDiffers(alliance, response.Alliance) {
 				aep.authAllianceMap[int32(alliance.Id)] = &abaeve_auth.Alliance{
-					Id: alliance.Id,
-					Name: response.Alliance.Name,
+					Id:     alliance.Id,
+					Name:   response.Alliance.Name,
 					Ticker: response.Alliance.Ticker,
 				}
 
 				aep.entityAdminClient.AllianceUpdate(context.Background(), &abaeve_auth.AllianceAdminRequest{
-					Alliance: aep.authAllianceMap[int32(alliance.Id)],
+					Alliance:  aep.authAllianceMap[int32(alliance.Id)],
 					Operation: abaeve_auth.EntityOperation_ADD_OR_UPDATE,
 				})
 			}
@@ -123,21 +139,21 @@ func (aep *authEsiPoller) updateOrDeleteCorporations() error {
 	aep.buildCorporationMap(corporations.GetList())
 
 	for _, corporation := range corporations.GetList() {
-		response, err := aep.corporationClient.GetCorporationById(context.Background(), &chremoas_esi.GetCorporationByIdRequest{ Id: int32(corporation.Id) })
+		response, err := aep.corporationClient.GetCorporationById(context.Background(), &chremoas_esi.GetCorporationByIdRequest{Id: int32(corporation.Id)})
 		if err == nil {
 			if response.Corporation == nil {
 				aep.entityAdminClient.CorporationUpdate(context.Background(), &abaeve_auth.CorporationAdminRequest{
 					Corporation: corporation,
-					Operation: abaeve_auth.EntityOperation_REMOVE,
+					Operation:   abaeve_auth.EntityOperation_REMOVE,
 				})
 			} else if corporationDiffers(corporation, response.Corporation) {
 				aep.checkAndUpdateCorpsAllianceIfNecessary(corporation, response.Corporation)
 
 				aep.entityAdminClient.CorporationUpdate(context.Background(), &abaeve_auth.CorporationAdminRequest{
 					Corporation: &abaeve_auth.Corporation{
-						Id: corporation.Id,
-						Name: response.Corporation.Name,
-						Ticker: response.Corporation.Ticker,
+						Id:         corporation.Id,
+						Name:       response.Corporation.Name,
+						Ticker:     response.Corporation.Ticker,
 						AllianceId: int64(response.Corporation.AllianceId),
 					},
 					Operation: abaeve_auth.EntityOperation_ADD_OR_UPDATE,
@@ -160,7 +176,7 @@ func (aep *authEsiPoller) updateOrDeleteCharacters() error {
 	allNonFatalErrors := ""
 
 	for _, character := range characters.GetList() {
-		response, err := aep.characterClient.GetCharacterById(context.Background(), &chremoas_esi.GetCharacterByIdRequest{ Id: int32(character.Id) })
+		response, err := aep.characterClient.GetCharacterById(context.Background(), &chremoas_esi.GetCharacterByIdRequest{Id: int32(character.Id)})
 		if err == nil {
 			if response.Character == nil {
 				aep.entityAdminClient.CharacterUpdate(context.Background(), &abaeve_auth.CharacterAdminRequest{
@@ -178,15 +194,15 @@ func (aep *authEsiPoller) updateOrDeleteCharacters() error {
 						aep.checkAndUpdateCorpsAllianceIfNecessary(aep.authCorporationMap[int32(character.CorporationId)], esiResponse.Corporation)
 
 						newAuthCorporation := &abaeve_auth.Corporation{
-							Id: int64(response.Character.CorporationId),
-							Name: esiResponse.Corporation.Name,
-							Ticker: esiResponse.Corporation.Ticker,
+							Id:         int64(response.Character.CorporationId),
+							Name:       esiResponse.Corporation.Name,
+							Ticker:     esiResponse.Corporation.Ticker,
 							AllianceId: int64(esiResponse.Corporation.AllianceId),
 						}
 
 						aep.entityAdminClient.CorporationUpdate(context.Background(), &abaeve_auth.CorporationAdminRequest{
 							Corporation: newAuthCorporation,
-							Operation: abaeve_auth.EntityOperation_ADD_OR_UPDATE,
+							Operation:   abaeve_auth.EntityOperation_ADD_OR_UPDATE,
 						})
 
 						aep.esiCorporationMap[character.CorporationId] = esiResponse.Corporation
@@ -196,8 +212,8 @@ func (aep *authEsiPoller) updateOrDeleteCharacters() error {
 
 				aep.entityAdminClient.CharacterUpdate(context.Background(), &abaeve_auth.CharacterAdminRequest{
 					Character: &abaeve_auth.Character{
-						Id: character.Id,
-						Name: response.Character.Name,
+						Id:            character.Id,
+						Name:          response.Character.Name,
 						CorporationId: int64(response.Character.CorporationId),
 					},
 				})
@@ -231,15 +247,15 @@ func (aep *authEsiPoller) checkAndUpdateCorpsAllianceIfNecessary(authCorporation
 		}
 
 		aep.authAllianceMap[esiCorporation.AllianceId] = &abaeve_auth.Alliance{
-			Id: int64(esiCorporation.AllianceId),
-			Name: newAllianceResponse.Alliance.Name,
+			Id:     int64(esiCorporation.AllianceId),
+			Name:   newAllianceResponse.Alliance.Name,
 			Ticker: newAllianceResponse.Alliance.Ticker,
 		}
 
 		aep.esiAllianceMap[int64(esiCorporation.AllianceId)] = newAllianceResponse.Alliance
 
 		_, err = aep.entityAdminClient.AllianceUpdate(context.Background(), &abaeve_auth.AllianceAdminRequest{
-			Alliance: aep.authAllianceMap[esiCorporation.AllianceId],
+			Alliance:  aep.authAllianceMap[esiCorporation.AllianceId],
 			Operation: abaeve_auth.EntityOperation_ADD_OR_UPDATE,
 		})
 		if err != nil {
@@ -310,6 +326,11 @@ func NewAuthEsiPoller(eqc abaeve_auth.EntityQueryClient,
 	corporationClient chremoas_esi.CorporationServiceClient,
 	characterClient chremoas_esi.CharacterServiceClient) AuthEsiPoller {
 
+	logger, _ := zap.NewProduction()
+	defer logger.Sync()
+	sugar := logger.Sugar()
+	sugar.Info("Setting up Auth ESI Poller")
+
 	return &authEsiPoller{
 		entityAdminClient: eac,
 		entityQueryClient: eqc,
@@ -321,7 +342,8 @@ func NewAuthEsiPoller(eqc abaeve_auth.EntityQueryClient,
 		authAllianceMap:    make(map[int32]*abaeve_auth.Alliance),
 		authCorporationMap: make(map[int32]*abaeve_auth.Corporation),
 
-		esiAllianceMap: make(map[int64]*chremoas_esi.Alliance),
+		esiAllianceMap:    make(map[int64]*chremoas_esi.Alliance),
 		esiCorporationMap: make(map[int64]*chremoas_esi.Corporation),
+		logger:            logger,
 	}
 }
