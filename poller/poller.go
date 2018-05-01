@@ -17,12 +17,12 @@ type AuthEsiPoller interface {
 }
 
 type authEsiPoller struct {
-	entityQueryClient abaeve_auth.EntityQueryClient
-	entityAdminClient abaeve_auth.EntityAdminClient
+	entityQueryClient abaeve_auth.EntityQueryService
+	entityAdminClient abaeve_auth.EntityAdminService
 
-	allianceClient    chremoas_esi.AllianceServiceClient
-	corporationClient chremoas_esi.CorporationServiceClient
-	characterClient   chremoas_esi.CharacterServiceClient
+	allianceClient    chremoas_esi.AllianceService
+	corporationClient chremoas_esi.CorporationService
+	characterClient   chremoas_esi.CharacterService
 
 	tickTime time.Duration
 	ticker   *time.Ticker
@@ -320,11 +320,11 @@ func (aep *authEsiPoller) Stop() {
 	aep.ticker.Stop()
 }
 
-func NewAuthEsiPoller(eqc abaeve_auth.EntityQueryClient,
-	eac abaeve_auth.EntityAdminClient,
-	allianceClient chremoas_esi.AllianceServiceClient,
-	corporationClient chremoas_esi.CorporationServiceClient,
-	characterClient chremoas_esi.CharacterServiceClient) AuthEsiPoller {
+func NewAuthEsiPoller(eqc abaeve_auth.EntityQueryService,
+	eac abaeve_auth.EntityAdminService,
+	allianceClient chremoas_esi.AllianceService,
+	corporationClient chremoas_esi.CorporationService,
+	characterClient chremoas_esi.CharacterService) AuthEsiPoller {
 
 	logger, _ := zap.NewProduction()
 	defer logger.Sync()

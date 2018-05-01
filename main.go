@@ -9,7 +9,7 @@ import (
 	"github.com/chremoas/auth-esi-poller/poller"
 )
 
-var version string = "1.0.0"
+var version = "1.0.0"
 var service micro.Service
 var name = "auth-esi-poller"
 
@@ -22,11 +22,11 @@ func main() {
 }
 
 func initialize(configuration *config.Configuration) error {
-	entityQueryClient := abaeve_auth.NewEntityQueryClient(configuration.LookupService("srv", "auth"), service.Client())
-	entityAdminClient := abaeve_auth.NewEntityAdminClient(configuration.LookupService("srv", "auth"), service.Client())
-	allianceClient := chremoas_esi.NewAllianceServiceClient(configuration.LookupService("srv", "esi"), service.Client())
-	corporationClient := chremoas_esi.NewCorporationServiceClient(configuration.LookupService("srv", "esi"), service.Client())
-	characterClient := chremoas_esi.NewCharacterServiceClient(configuration.LookupService("srv", "esi"), service.Client())
+	entityQueryClient := abaeve_auth.NewEntityQueryService(configuration.LookupService("srv", "auth"), service.Client())
+	entityAdminClient := abaeve_auth.NewEntityAdminService(configuration.LookupService("srv", "auth"), service.Client())
+	allianceClient := chremoas_esi.NewAllianceService(configuration.LookupService("srv", "esi"), service.Client())
+	corporationClient := chremoas_esi.NewCorporationService(configuration.LookupService("srv", "esi"), service.Client())
+	characterClient := chremoas_esi.NewCharacterService(configuration.LookupService("srv", "esi"), service.Client())
 
 	runner := poller.NewAuthEsiPoller(entityQueryClient, entityAdminClient, allianceClient, corporationClient, characterClient)
 
