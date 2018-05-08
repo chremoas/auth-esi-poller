@@ -2,7 +2,6 @@ package poller
 
 import (
 	"errors"
-	"fmt"
 	"github.com/chremoas/auth-srv/proto"
 	"github.com/chremoas/esi-srv/proto"
 	"go.uber.org/zap"
@@ -93,6 +92,8 @@ func (aep *authEsiPoller) Poll() error {
 }
 
 func (aep *authEsiPoller) updateOrDeleteAlliances() error {
+	sugar := aep.logger.Sugar()
+
 	alliances, err := aep.entityQueryClient.GetAlliances(context.Background(), &abaeve_auth.EntityQueryRequest{EntityType: abaeve_auth.EntityType_ALLIANCE})
 	if err != nil {
 		return err
@@ -104,6 +105,7 @@ func (aep *authEsiPoller) updateOrDeleteAlliances() error {
 		response, err := aep.allianceClient.GetAllianceById(context.Background(), &chremoas_esi.GetAllianceByIdRequest{Id: int32(alliance.Id)})
 		if err == nil {
 			if response.Alliance == nil {
+				sugar.Infof("Removing alliance: %s", alliance)
 				aep.entityAdminClient.AllianceUpdate(context.Background(), &abaeve_auth.AllianceAdminRequest{
 					Alliance:  alliance,
 					Operation: abaeve_auth.EntityOperation_REMOVE,
@@ -115,6 +117,7 @@ func (aep *authEsiPoller) updateOrDeleteAlliances() error {
 					Ticker: response.Alliance.Ticker,
 				}
 
+				sugar.Infof("Updating alliance: %s", aep.authAllianceMap[int32(alliance.Id)])
 				aep.entityAdminClient.AllianceUpdate(context.Background(), &abaeve_auth.AllianceAdminRequest{
 					Alliance:  aep.authAllianceMap[int32(alliance.Id)],
 					Operation: abaeve_auth.EntityOperation_ADD_OR_UPDATE,
@@ -131,6 +134,8 @@ func (aep *authEsiPoller) updateOrDeleteAlliances() error {
 }
 
 func (aep *authEsiPoller) updateOrDeleteCorporations() error {
+	sugar := aep.logger.Sugar()
+
 	corporations, err := aep.entityQueryClient.GetCorporations(context.Background(), &abaeve_auth.EntityQueryRequest{EntityType: abaeve_auth.EntityType_CORPORATION})
 	if err != nil {
 		return err
@@ -142,6 +147,7 @@ func (aep *authEsiPoller) updateOrDeleteCorporations() error {
 		response, err := aep.corporationClient.GetCorporationById(context.Background(), &chremoas_esi.GetCorporationByIdRequest{Id: int32(corporation.Id)})
 		if err == nil {
 			if response.Corporation == nil {
+				sugar.Infof("Removing corporation: %s", corporation)
 				aep.entityAdminClient.CorporationUpdate(context.Background(), &abaeve_auth.CorporationAdminRequest{
 					Corporation: corporation,
 					Operation:   abaeve_auth.EntityOperation_REMOVE,
@@ -149,6 +155,7 @@ func (aep *authEsiPoller) updateOrDeleteCorporations() error {
 			} else if corporationDiffers(corporation, response.Corporation) {
 				aep.checkAndUpdateCorpsAllianceIfNecessary(corporation, response.Corporation)
 
+				sugar.Infof("Updating corporation: %s", corporation)
 				aep.entityAdminClient.CorporationUpdate(context.Background(), &abaeve_auth.CorporationAdminRequest{
 					Corporation: &abaeve_auth.Corporation{
 						Id:         corporation.Id,
@@ -168,6 +175,8 @@ func (aep *authEsiPoller) updateOrDeleteCorporations() error {
 }
 
 func (aep *authEsiPoller) updateOrDeleteCharacters() error {
+	sugar := aep.logger.Sugar()
+
 	characters, err := aep.entityQueryClient.GetCharacters(context.Background(), &abaeve_auth.EntityQueryRequest{EntityType: abaeve_auth.EntityType_CHARACTER})
 	if err != nil {
 		return err
@@ -179,6 +188,7 @@ func (aep *authEsiPoller) updateOrDeleteCharacters() error {
 		response, err := aep.characterClient.GetCharacterById(context.Background(), &chremoas_esi.GetCharacterByIdRequest{Id: int32(character.Id)})
 		if err == nil {
 			if response.Character == nil {
+				sugar.Infof("Removing character: %s", character)
 				aep.entityAdminClient.CharacterUpdate(context.Background(), &abaeve_auth.CharacterAdminRequest{
 					Character: character,
 					Operation: abaeve_auth.EntityOperation_REMOVE,
@@ -200,6 +210,7 @@ func (aep *authEsiPoller) updateOrDeleteCharacters() error {
 							AllianceId: int64(esiResponse.Corporation.AllianceId),
 						}
 
+						sugar.Infof("Updating character corporation: %s", character)
 						aep.entityAdminClient.CorporationUpdate(context.Background(), &abaeve_auth.CorporationAdminRequest{
 							Corporation: newAuthCorporation,
 							Operation:   abaeve_auth.EntityOperation_ADD_OR_UPDATE,
@@ -210,6 +221,7 @@ func (aep *authEsiPoller) updateOrDeleteCharacters() error {
 					}
 				}
 
+				sugar.Infof("Updating character: %s", character)
 				aep.entityAdminClient.CharacterUpdate(context.Background(), &abaeve_auth.CharacterAdminRequest{
 					Character: &abaeve_auth.Character{
 						Id:            character.Id,
@@ -231,11 +243,13 @@ func (aep *authEsiPoller) updateOrDeleteCharacters() error {
 }
 
 func (aep *authEsiPoller) checkAndUpdateCorpsAllianceIfNecessary(authCorporation *abaeve_auth.Corporation, esiCorporation *chremoas_esi.Corporation) error {
+	sugar := aep.logger.Sugar()
+
 	if esiCorporation.AllianceId == 0 {
 		return nil
 	}
 
-	fmt.Printf("Updating corporations alliance for %s with allianceId %d\n", esiCorporation.Name, esiCorporation.AllianceId)
+	sugar.Infof("Updating corporations alliance for %s with allianceId %d\n", esiCorporation.Name, esiCorporation.AllianceId)
 	allErrors := ""
 
 	if authCorporation.AllianceId != int64(esiCorporation.AllianceId) && aep.esiAllianceMap[int64(esiCorporation.AllianceId)] == nil {
@@ -254,6 +268,7 @@ func (aep *authEsiPoller) checkAndUpdateCorpsAllianceIfNecessary(authCorporation
 
 		aep.esiAllianceMap[int64(esiCorporation.AllianceId)] = newAllianceResponse.Alliance
 
+		sugar.Infof("Updating alliance: %s", aep.authAllianceMap[esiCorporation.AllianceId])
 		_, err = aep.entityAdminClient.AllianceUpdate(context.Background(), &abaeve_auth.AllianceAdminRequest{
 			Alliance:  aep.authAllianceMap[esiCorporation.AllianceId],
 			Operation: abaeve_auth.EntityOperation_ADD_OR_UPDATE,
