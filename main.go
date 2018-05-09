@@ -24,11 +24,12 @@ func main() {
 func initialize(configuration *config.Configuration) error {
 	entityQueryClient := abaeve_auth.NewEntityQueryService(configuration.LookupService("srv", "auth"), service.Client())
 	entityAdminClient := abaeve_auth.NewEntityAdminService(configuration.LookupService("srv", "auth"), service.Client())
+	authHandlerClient := abaeve_auth.NewUserAuthenticationService(configuration.LookupService("srv", "auth"), service.Client())
 	allianceClient := chremoas_esi.NewAllianceService(configuration.LookupService("srv", "esi"), service.Client())
 	corporationClient := chremoas_esi.NewCorporationService(configuration.LookupService("srv", "esi"), service.Client())
 	characterClient := chremoas_esi.NewCharacterService(configuration.LookupService("srv", "esi"), service.Client())
 
-	runner := poller.NewAuthEsiPoller(entityQueryClient, entityAdminClient, allianceClient, corporationClient, characterClient)
+	runner := poller.NewAuthEsiPoller(entityQueryClient, entityAdminClient, authHandlerClient, allianceClient, corporationClient, characterClient)
 
 	runner.Start()
 

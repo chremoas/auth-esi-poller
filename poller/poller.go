@@ -18,6 +18,7 @@ type AuthEsiPoller interface {
 type authEsiPoller struct {
 	entityQueryClient abaeve_auth.EntityQueryService
 	entityAdminClient abaeve_auth.EntityAdminService
+	authHanderClient  abaeve_auth.UserAuthenticationService
 
 	allianceClient    chremoas_esi.AllianceService
 	corporationClient chremoas_esi.CorporationService
@@ -83,6 +84,18 @@ func (aep *authEsiPoller) Poll() error {
 
 	sugar.Info("Calling clearMaps()")
 	aep.clearMaps()
+
+	sugar.Info("Syncing to Role service")
+	// This needs to be run twice for when people change corps/alliances. Need to figure out why.
+	// Some other time. -brian
+	_, err = aep.authHanderClient.SyncToRoleService(context.Background(), &abaeve_auth.SyncRequest{})
+	if err != nil {
+		allErrors += err.Error() + "\n"
+	}
+	_, err = aep.authHanderClient.SyncToRoleService(context.Background(), &abaeve_auth.SyncRequest{})
+	if err != nil {
+		allErrors += err.Error() + "\n"
+	}
 
 	if len(allErrors) > 0 {
 		return errors.New(allErrors)
@@ -337,6 +350,7 @@ func (aep *authEsiPoller) Stop() {
 
 func NewAuthEsiPoller(eqc abaeve_auth.EntityQueryService,
 	eac abaeve_auth.EntityAdminService,
+	ahc abaeve_auth.UserAuthenticationService,
 	allianceClient chremoas_esi.AllianceService,
 	corporationClient chremoas_esi.CorporationService,
 	characterClient chremoas_esi.CharacterService) AuthEsiPoller {
@@ -349,6 +363,7 @@ func NewAuthEsiPoller(eqc abaeve_auth.EntityQueryService,
 	return &authEsiPoller{
 		entityAdminClient: eac,
 		entityQueryClient: eqc,
+		authHanderClient:  ahc,
 		allianceClient:    allianceClient,
 		corporationClient: corporationClient,
 		characterClient:   characterClient,
