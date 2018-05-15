@@ -367,7 +367,7 @@ func NewAuthEsiPoller(eqc abaeve_auth.EntityQueryService,
 		allianceClient:    allianceClient,
 		corporationClient: corporationClient,
 		characterClient:   characterClient,
-		tickTime:          time.Minute * 5,
+		tickTime:          time.Minute * 60,
 
 		authAllianceMap:    make(map[int32]*abaeve_auth.Alliance),
 		authCorporationMap: make(map[int32]*abaeve_auth.Corporation),
