@@ -4,8 +4,8 @@ go 1.12
 
 require (
 	github.com/chremoas/auth-srv v1.1.8
-	github.com/chremoas/esi-srv v1.1.6
-	github.com/chremoas/services-common v1.1.6
+	github.com/chremoas/esi-srv v1.1.7
+	github.com/chremoas/services-common v1.2.0
 	github.com/micro/go-micro v1.8.1
 	github.com/petergtz/pegomock v2.5.0+incompatible
 	github.com/smartystreets/goconvey v0.0.0-20190710185942-9d28bd7c0945
