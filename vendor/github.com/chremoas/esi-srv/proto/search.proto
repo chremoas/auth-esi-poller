@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package chremoas.esi;
+
+service SearchService {
+    rpc Search (SearchRequest) returns (SearchResponse) {
+    };
+}
+
+// Search
+
+message SearchRequest {
+    string SearchString = 1;
+}
+
+message SearchResponse {
+    repeated int32 Agent = 1;
+    repeated int32 Alliance = 2;
+    repeated int32 Character = 3;
+    repeated int32 Constellation = 4;
+    repeated int32 Corporation = 5;
+    repeated int32 Faction = 6;
+    repeated int32 Inventorytype = 7;
+    repeated int32 Region = 8;
+    repeated int32 Solarsystem = 9;
+    repeated int32 Station = 10;
+    repeated int32 Wormhole = 11;
+}

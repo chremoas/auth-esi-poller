@@ -1,5 +1,4 @@
 .idea
 *.iml
 application.yaml
-vendor/
 /auth-esi-poller-linux-amd64

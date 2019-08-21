@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package chremoas.esi;
+
+import "common.proto";
+
+service CharacterService {
+    rpc GetCharacterById (GetCharacterByIdRequest) returns (GetCharacterByIdResponse) {
+    };
+}
+
+// GetCharacterById
+message GetCharacterByIdRequest {
+    int32 Id = 1;
+}
+
+message GetCharacterByIdResponse {
+    Character Character = 1;
+}

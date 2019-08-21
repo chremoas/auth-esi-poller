@@ -1,0 +1,65 @@
+syntax = "proto3";
+
+package chremoas.esi;
+
+import "common.proto";
+
+service AllianceService {
+    rpc GetAlliances (GetAlliancesRequest) returns (GetAlliancesResponse) {
+    };
+    rpc GetAllianceById (GetAllianceByIdRequest) returns (GetAllianceByIdResponse) {
+    };
+    rpc GetAllianceCorporationsById (GetAllianceCorporationsByIdRequest) returns (GetAllianceCorporationsByIdResponse) {
+    };
+    rpc GetAllianceIconsById (GetAllianceIconsByIdRequest) returns (GetAllianceIconsByIdResponse) {
+    };
+    rpc GetAllianceNamesByIds (GetAllianceNamesByIdsRequest) returns (GetAllianceNamesByIdsResponse) {
+    };
+}
+
+// GetAlliances
+
+message GetAlliancesRequest {}
+
+message GetAlliancesResponse {
+    repeated int32 Ids = 1;
+}
+
+// GetAllianceById
+
+message GetAllianceByIdRequest {
+    int32 Id = 1;
+}
+
+message GetAllianceByIdResponse {
+    Alliance Alliance = 1;
+}
+
+// GetAllianceCorporationsById
+message GetAllianceCorporationsByIdRequest {
+    int32 Id = 1;
+}
+
+message GetAllianceCorporationsByIdResponse {
+    repeated int32 Ids = 1;
+}
+
+// GetAllianceIconsById
+
+message GetAllianceIconsByIdRequest {
+    int32 Id = 1;
+}
+
+message GetAllianceIconsByIdResponse {
+    Icons Icons = 1;
+}
+
+// GetAllianceNamesByIds
+
+message GetAllianceNamesByIdsRequest {
+    repeated int32 Ids = 1;
+}
+
+message GetAllianceNamesByIdsResponse {
+    repeated AllianceNames Names = 1;
+}

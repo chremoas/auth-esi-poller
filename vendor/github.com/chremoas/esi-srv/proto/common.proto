@@ -1,0 +1,55 @@
+syntax = "proto3";
+
+package chremoas.esi;
+
+enum EntityType {
+    ALLIANCE = 0;
+    CORPORATION = 1;
+    CHARACTER = 2;
+}
+
+message Alliance {
+    string Name = 1;
+    string Ticker = 2;
+    int32 ExecutorCorp = 3;
+    int64 DateFounded = 4;
+}
+
+message Icons {
+    string PSixtyFour = 1;
+    string POneTwentyEight = 2;
+}
+
+message AllianceNames {
+    int32 AllianceId = 1;
+    string AllianceName = 2;
+}
+
+message Character {
+    string Name = 1;
+    string Description = 2;
+    int32 CorporationId = 3;
+    int32 AllianceId = 4;
+    int64 Birthday = 5;
+    string Gender = 6;
+    int32 RaceId = 7;
+    int32 BloodlineId = 8;
+    int32 AncestryId = 9;
+    float SecurityStatus = 10;
+    // His docs say this exists, but it doesn't appear to
+    //int32 FactionId = 11;
+}
+
+message Corporation {
+    string Name = 1;
+    string Ticker = 2;
+    int32 MemberCount = 3;
+    int32 CeoId = 4;
+    int32 AllianceId = 5;
+    string Description = 6;
+    float TaxRate = 7;
+    int64 CreationDate = 8;
+    int32 CreatorId = 9;
+    string Url = 10;
+    int32 FactionId = 11;
+}

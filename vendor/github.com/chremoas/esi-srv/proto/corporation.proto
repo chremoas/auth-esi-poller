@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package chremoas.esi;
+
+import "common.proto";
+
+service CorporationService {
+    rpc GetCorporationById (GetCorporationByIdRequest) returns (GetCorporationByIdResponse) {
+    };
+}
+
+// GetCorporationById
+
+message GetCorporationByIdRequest {
+    int32 Id = 1;
+}
+
+message GetCorporationByIdResponse {
+    Corporation Corporation = 1;
+}
+
