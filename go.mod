@@ -3,7 +3,7 @@ module github.com/chremoas/auth-esi-poller
 go 1.12
 
 require (
-	github.com/chremoas/auth-srv v1.2.5
+	github.com/chremoas/auth-srv v1.2.6
 	github.com/chremoas/esi-srv v1.2.5
 	github.com/chremoas/services-common v1.2.5
 	github.com/micro/go-micro v1.9.1
