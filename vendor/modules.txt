@@ -9,14 +9,14 @@ github.com/armon/consul-api
 github.com/armon/go-metrics
 # github.com/cheekybits/genny v1.0.0
 github.com/cheekybits/genny/generic
-# github.com/chremoas/auth-srv v1.2.1
+# github.com/chremoas/auth-srv v1.2.5
 github.com/chremoas/auth-srv/proto
 github.com/chremoas/auth-srv/proto/mocks/matchers
-# github.com/chremoas/esi-srv v1.2.1
+# github.com/chremoas/esi-srv v1.2.5
 github.com/chremoas/esi-srv/proto
 github.com/chremoas/esi-srv/proto/mocks
 github.com/chremoas/esi-srv/proto/mocks/matchers
-# github.com/chremoas/services-common v1.2.4
+# github.com/chremoas/services-common v1.2.5
 github.com/chremoas/services-common/config
 # github.com/coreos/etcd v3.3.13+incompatible
 github.com/coreos/etcd/client
