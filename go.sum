@@ -53,6 +53,7 @@ github.com/chremoas/auth-srv v1.2.1/go.mod h1:BRppzjYal8Jxl+e9KNhJIEHVve8OE5DVxm
 github.com/chremoas/auth-srv v1.2.2 h1:/JvAbpWKyQdbHh4iE9LXuPRpnuZWPpnY1ayPiDmISpE=
 github.com/chremoas/auth-srv v1.2.5 h1:QOeHUM3ssUAxPgoTjV93d9RwRdk4EufpLkwn6L+AcBg=
 github.com/chremoas/auth-srv v1.2.5/go.mod h1:7OpT/QGphUDUcMJmuMmD5tdu543ZCVmnyKAINtRJ+Kk=
+github.com/chremoas/auth-srv v1.2.6 h1:f3EbOrXbxl8HgSZSt8RJrUd9Zb9P3vF2ykwZ6rjlpWU=
 github.com/chremoas/discord-gateway v1.2.1/go.mod h1:ZDaZsScNnHK2X01p4Qy71cVYBlh1pIQdihOm2OCFJ8M=
 github.com/chremoas/discord-gateway v1.2.5/go.mod h1:OMxhGRQBc0s4gM4q/IrMo5A2Ra9aAGRvcKLP1yIOMes=
 github.com/chremoas/esi-srv v1.2.1 h1:GTpsKKXLR+T8Ygg1co5/rfLWi7PAS6dEG6CQIPCfkSE=
@@ -290,6 +291,7 @@ github.com/micro/go-micro v1.8.1 h1:++vFKfOpj/oW71vwkso9UT6y8q77bNG5WAsrevPk5JQ=
 github.com/micro/go-micro v1.8.1/go.mod h1:oO5ShfJrdzayFLPUueZF85tZoez8VYLcXuTOTaHxROI=
 github.com/micro/go-micro v1.9.1 h1:qlMB4hrttOQeo1rPkMZyLzjSJZXLxTcfkkk8lKIxRbQ=
 github.com/micro/go-micro v1.9.1/go.mod h1:duT+Yo83/MnUMmRAeCDKaZdqwqpYJt70eHoEdPTZGmc=
+github.com/micro/go-micro v1.18.0 h1:gP70EZVHpJuUIT0YWth192JmlIci+qMOEByHm83XE9E=
 github.com/micro/mdns v0.2.0 h1:/+/n2PSiJURrXsBIGtfCz0hex/XYKqVsn51GAGdFrOE=
 github.com/micro/mdns v0.2.0/go.mod h1:KJ0dW7KmicXU2BV++qkLlmHYcVv7/hHnbtguSWt9Aoc=
 github.com/micro/mdns v0.3.0 h1:bYycYe+98AXR3s8Nq5qvt6C573uFTDPIYzJemWON0QE=
@@ -354,6 +356,8 @@ github.com/pelletier/go-toml v1.2.0 h1:T5zMGML61Wp+FlcbWjRDT7yAxhJNAiPPLOFECq181
 github.com/pelletier/go-toml v1.2.0/go.mod h1:5z9KED0ma1S8pY6P1sdut58dfprrGBbd/94hg7ilaic=
 github.com/petergtz/pegomock v2.5.0+incompatible h1:NgwX1/qc+tsl7I45OkDxYZ1mIonYWbOESnpZcd20sR0=
 github.com/petergtz/pegomock v2.5.0+incompatible/go.mod h1:nuBLWZpVyv/fLo56qTwt/AUau7jgouO1h7bEvZCq82o=
+github.com/petergtz/pegomock v2.8.0+incompatible h1:xRKfBK+COYde7M4WzWPJM2nuIwO387NkFivWuxiBRxI=
+github.com/petergtz/pegomock v2.8.0+incompatible/go.mod h1:nuBLWZpVyv/fLo56qTwt/AUau7jgouO1h7bEvZCq82o=
 github.com/pierrec/lz4 v2.0.5+incompatible/go.mod h1:pdkljMzZIN41W+lC3N2tnIh5sFi+IEE17M5jbnwPHcY=
 github.com/pkg/errors v0.8.0/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pkg/errors v0.8.1 h1:iURUrRGxPUNPdy5/HRSm+Yj6okJ6UtLINN0Q9M4+h3I=
