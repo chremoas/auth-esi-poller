@@ -17,7 +17,7 @@ GITHUB_USERNAME=chremoas
 DEV_REGISTRY=docker.4amlunch.net
 
 # Setup the -ldflags option for go build here, interpolate the variable values
-LDFLAGS = -ldflags \"-w -X main.Version=${VERSION} -X main.Commit=${COMMIT} -X main.Branch=${BRANCH}\"
+LDFLAGS = -ldflags "-w -X main.Version=${VERSION} -X main.Commit=${COMMIT} -X main.Branch=${BRANCH}"
 
 # Build the project
 all: clean docker
