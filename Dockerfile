@@ -4,6 +4,7 @@ FROM golang:1.14-alpine AS build
 ARG BRANCH
 ARG COMMIT
 ARG VERSION
+ARG BINARY
 
 RUN mkdir /app
 ADD . /app/
@@ -15,6 +16,6 @@ RUN CGO_ENABLED=0 go build -ldflags "-w -X main.Version=${VERSION} -X main.Commi
 FROM scratch
 MAINTAINER Brian Hechinger <wonko@4amlunch.net>
 VOLUME /etc/chremoas
-COPY --from=build /app/auth-esi-poller /auth-esi-poller
+COPY --from=build /app/${BINARY} /${BINARY}
 
-ENTRYPOINT ["/auth-esi-poller", "--configuration_file", "/etc/chremoas/chremoas.yaml"]
+ENTRYPOINT ["/${BINARY}", "--configuration_file", "/etc/chremoas/chremoas.yaml"]
