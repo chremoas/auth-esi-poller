@@ -1,11 +1,13 @@
 package main
 
 import (
-	"github.com/chremoas/services-common/config"
-	"github.com/chremoas/auth-srv/proto"
-	"github.com/micro/go-micro"
-	"github.com/chremoas/esi-srv/proto"
 	"fmt"
+
+	"github.com/chremoas/auth-srv/proto"
+	"github.com/chremoas/esi-srv/proto"
+	"github.com/chremoas/services-common/config"
+	"github.com/micro/go-micro"
+
 	"github.com/chremoas/auth-esi-poller/poller"
 )
 
